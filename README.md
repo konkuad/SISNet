@@ -1,4 +1,4 @@
-# SPAM-MSDNet
-Spectral Power and Morphology Multi-Scale Densenet Model for EEG seizure classification.
+# SISNet
+Seizure Classifier with multi-level convolution and deep metric learning
 
 -TBA-
