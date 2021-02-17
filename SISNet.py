@@ -216,8 +216,7 @@ class Functions:
 
             print("EPOCH : ",epoch)
             print("train loss = ","{:.5f}".format(train_loss.item()), "\t emb_train loss = ","{:.5f}".format(emb_train_loss.item()), "\t cls_train loss = ","{:.5f}".format(cls_train_loss.item()))
-            #print("val loss = ","{:.5f}".format(val_loss.item()), "\t emb_val loss = ","{:.5f}".format(emb_val_loss.item()), "\t cls_train loss = ","{:.5f}".format(cls_val_loss.item()))
-            print("val loss = ","{:.5f}".format(val_loss.item()))
+            print("val loss = ","{:.5f}".format(val_loss.item()), "\t emb_val loss = ","{:.5f}".format(emb_val_loss.item()), "\t cls_train loss = ","{:.5f}".format(cls_val_loss.item()))
             print("acc = ",val_acc)
             print("f1 = ",val_f_one)
             print("===================================================================================\n")
@@ -238,11 +237,7 @@ class Functions:
                 break
             
             history = {"train loss"          : List_train_loss,
-                      #"embeddings train loss": List_emb_train_loss,
-                      #"classifier train loss": List_cls_train_loss,
                       "val loss"             : List_val_loss,
-                      #"embeddings val loss"  : List_emb_val_loss,
-                      #"classifier val loss"  : List_cls_val_loss,
                       "accuracies"           : List_val_acc,
                       "f1 scores"            : List_val_f_one}
 
