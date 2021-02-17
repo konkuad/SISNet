@@ -206,10 +206,9 @@ class Functions:
                 Model                      = Model.cpu()
 
                 val_embeddings, val_output = Model(X_val.float())[0],Model(X_val.float())[1]     
-                #emb_val_loss               = triplet_loss_func(val_embeddings, y_val)
-                #cls_val_loss               = val_CE_loss_func(val_output, y_val)
-                #val_loss                   = (emb_val_loss*0.5+cls_val_loss*0.5)
-                val_loss                   = val_CE_loss_func(val_output, y_val)
+                emb_val_loss               = triplet_loss_func(val_embeddings, y_val)
+                cls_val_loss               = val_CE_loss_func(val_output, y_val)
+                val_loss                   = (emb_val_loss*0.25+cls_val_loss*0.75)
                 
                 val_predictions            = np.argmax(list(val_output.numpy()), axis=1)
                 val_acc                    = accuracy_score(y_val, val_predictions)*100
