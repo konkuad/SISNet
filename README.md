@@ -1,4 +1,4 @@
-# SISNet
+# MuS-Net (Multi-scale seizure prediction)
 Seizure Classifier with multi-level convolution and deep metric learning
 
 Literally every code is in SISNet.py
