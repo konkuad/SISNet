@@ -1,5 +1,6 @@
 #Import Libraries
 import matplotlib.pyplot as plt
+import os
 import math
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -8,17 +9,22 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from scipy import signal
 from sklearn.utils.class_weight import compute_class_weight as classweight
+import time
+
+#Import Libraries for NN and XAI
 import torch
 from torch.autograd import Variable
 from torch import nn
 import torch.nn.functional as F
 from torch.nn import Linear, ReLU, BCELoss, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout, Conv1d, MaxPool1d, BatchNorm1d
 from torch.optim import Adam, SGD
+
+#Import Libraries for DML
 from pytorch_metric_learning import losses, miners, distances, reducers, testers
 from pytorch_metric_learning.utils.accuracy_calculator import AccuracyCalculator
 
 class Functions:
-    def build(n_chans,n_classes,PSD):
+    def build(n_chans,n_classes):
         class Net(nn.Module):
             def __init__(self):
                 super(Net, self).__init__()
@@ -34,93 +40,69 @@ class Functions:
 
             ###########################################################################################################
 
-                self.stack1     = Sequential(
-                    nn.Conv2d(n_chans, 64, kernel_size=(1,2)),
+                self.chpool1    = Sequential(
+                    nn.Conv2d(21, 128, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(128),
                     nn.LeakyReLU(0.01),
-                    nn.Conv2d(64, 32, kernel_size=(1,2)),
+                    nn.Conv2d(128, 64, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(64),
                     nn.LeakyReLU(0.01),
-                    nn.Conv2d(32, 16, kernel_size=(1,2)),
-                    nn.LeakyReLU(0.01))
-                self.stack2     = Sequential(
-                    nn.Conv2d(n_chans, 64, kernel_size=(1,2)),
-                    nn.LeakyReLU(0.01),
-                    nn.Conv2d(64, 32, kernel_size=(1,2)),
-                    nn.LeakyReLU(0.01),
-                    nn.Conv2d(32, 16, kernel_size=(1,2)),
-                    nn.LeakyReLU(0.01))
-                self.stack3     = Sequential(
-                    nn.Conv2d(n_chans, 64, kernel_size=(1,4)),
-                    nn.LeakyReLU(0.01),
-                    nn.Conv2d(64, 32, kernel_size=(1,4)),
-                    nn.LeakyReLU(0.01),
-                    nn.Conv2d(32, 16, kernel_size=(1,4)),
-                    nn.LeakyReLU(0.01))
-                self.stack4     = Sequential(
-                    nn.Conv2d(n_chans, 64, kernel_size=(1,4)),
-                    nn.LeakyReLU(0.01),
-                    nn.Conv2d(64, 32, kernel_size=(1,4)),
-                    nn.LeakyReLU(0.01),
-                    nn.Conv2d(32, 16, kernel_size=(1,4)),
-                    nn.LeakyReLU(0.01))
-                self.stack5     = Sequential(
-                    nn.Conv2d(n_chans, 64, kernel_size=(1,8)),
-                    nn.LeakyReLU(0.01),
-                    nn.Conv2d(64, 32, kernel_size=(1,8)),
-                    nn.LeakyReLU(0.01),
-                    nn.Conv2d(32, 16, kernel_size=(1,8)),
+                    nn.Conv2d(64, 32, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(32),
                     nn.LeakyReLU(0.01))
 
-            ###########################################################################################################
-            
-                if PSD == True:
+                self.chpool2    = Sequential(
+                    nn.Conv2d(21, 128, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(128),
+                    nn.LeakyReLU(0.01),
+                    nn.Conv2d(128, 64, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(64),
+                    nn.LeakyReLU(0.01),
+                    nn.Conv2d(64, 32, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(32),
+                    nn.LeakyReLU(0.01))
 
-                    self.psd        = lambda data : [signal.welch(data[i].cpu(), 256, nperseg=1024)[1] for i in range(n_chans)]
-                    self.psdstack1  = nn.Conv2d(n_chans, n_chans, kernel_size=(1,4), stride=4 , groups=n_chans)
-                    self.psdstack2  = nn.Conv2d(n_chans, n_chans, kernel_size=(1,4), stride=4 , groups=n_chans)
-                    self.psdstack3  = nn.Conv2d(n_chans, n_chans, kernel_size=(1,4), stride=4 , groups=n_chans)
-                    self.psdstack4  = nn.Conv2d(n_chans, n_chans, kernel_size=(1,4), stride=4 , groups=n_chans)
-                    self.psdstack5  = nn.Conv2d(n_chans, n_chans, kernel_size=(1,4), stride=4 , groups=n_chans)
-                    n_features      = 80+5*n_chans
+                self.chpool3    = Sequential(
+                    nn.Conv2d(21, 128, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(128),
+                    nn.LeakyReLU(0.01),
+                    nn.Conv2d(128, 64, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(64),
+                    nn.LeakyReLU(0.01),
+                    nn.Conv2d(64, 32, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(32),
+                    nn.LeakyReLU(0.01))
                     
-                else:
-                    n_features      = 80
+                self.chpool4    = Sequential(
+                    nn.Conv2d(21, 128, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(128),
+                    nn.LeakyReLU(0.01),
+                    nn.Conv2d(128, 64, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(64),
+                    nn.LeakyReLU(0.01),
+                    nn.Conv2d(64, 32, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(32),
+                    nn.LeakyReLU(0.01))
 
-            ###########################################################################################################
-
-                self.embedding  = Sequential(
-                    nn.Linear(n_features,64))
+                self.chpool5    = Sequential(
+                    nn.Conv2d(21, 128, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(128),
+                    nn.LeakyReLU(0.01),
+                    nn.Conv2d(128, 64, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(64),
+                    nn.LeakyReLU(0.01),
+                    nn.Conv2d(64, 32, kernel_size=(1,4),groups=1),
+                    torch.nn.BatchNorm2d(32),
+                    nn.LeakyReLU(0.01))
 
                 self.classifier = Sequential(
+                    nn.Linear(160,64),
+                    nn.LeakyReLU(0.01),
                     nn.Linear(64,32),
+                    nn.Sigmoid(),
                     nn.Linear(32,n_classes))
 
             def forward(self, x , training=True):
-
-            ###########################################################################################################
-            
-                if PSD == True:
-
-                    try:
-
-                        psd             = torch.tensor([self.psd(x[i]) for i in range(x.size(0))]).cuda()
-                        psd_gamma       = self.psdstack1(psd[:,:,:,128:256]).mean(dim=(-2, -1))
-                        psd_beta        = self.psdstack2(psd[:,:,:,64:128]).mean(dim=(-2, -1))
-                        psd_alpha       = self.psdstack3(psd[:,:,:,32:64]).mean(dim=(-2, -1))
-                        psd_delta       = self.psdstack4(psd[:,:,:,16:32]).mean(dim=(-2, -1))
-                        psd_theta       = self.psdstack5(psd[:,:,:,0:16]).mean(dim=(-2, -1))
-
-                    except RuntimeError:
-
-                        psd             = torch.tensor([self.psd(x[i]) for i in range(x.size(0))])
-                        psd_gamma       = self.psdstack1(psd[:,:,:,128:256]).mean(dim=(-2, -1))
-                        psd_beta        = self.psdstack2(psd[:,:,:,64:128]).mean(dim=(-2, -1))
-                        psd_alpha       = self.psdstack3(psd[:,:,:,32:64]).mean(dim=(-2, -1))
-                        psd_delta       = self.psdstack4(psd[:,:,:,16:32]).mean(dim=(-2, -1))
-                        psd_theta       = self.psdstack5(psd[:,:,:,0:16]).mean(dim=(-2, -1))
-                        
-                    psd_y           = torch.cat([psd_theta,psd_delta,psd_alpha,psd_beta,psd_gamma],1)
-
-            ###########################################################################################################
 
                 temp_x          = self.temp_conv1(x)               #128 hz , output_size = 512
                 temp_gamma      = self.temp_conv2(temp_x)          #64 hz  , output_size = 256
@@ -131,36 +113,22 @@ class Functions:
 
             ###########################################################################################################
 
-                gamma           = self.stack5(temp_gamma).mean(dim=(-2, -1))    #Convolution stack + GolbalAveragePooling
-                beta            = self.stack4(temp_beta).mean(dim=(-2, -1))     #Convolution stack + GolbalAveragePooling
-                alpha           = self.stack3(temp_alpha).mean(dim=(-2, -1))    #Convolution stack + GolbalAveragePooling
-                delta           = self.stack2(temp_delta).mean(dim=(-2, -1))    #Convolution stack + GolbalAveragePooling
-                theta           = self.stack1(temp_theta).mean(dim=(-2, -1))    #Convolution stack + GolbalAveragePooling
-
-            ###########################################################################################################
-
-                temp_y          = torch.cat([theta,delta,alpha,beta,gamma],1)
+                gamma           = self.chpool1(temp_gamma).mean(dim=(-2,-1))
+                beta            = self.chpool2(temp_beta).mean(dim=(-2,-1))
+                alpha           = self.chpool3(temp_alpha).mean(dim=(-2,-1))
+                delta           = self.chpool4(temp_delta).mean(dim=(-2,-1))
+                theta           = self.chpool5(temp_theta).mean(dim=(-2,-1))
 
             ###########################################################################################################
             
-            
-                if PSD == True:
-
-                    y           = torch.cat([psd_y,temp_y],1)
-                    
-                else:
-                    
-                    y           = temp_y
-                    
-                embeddings      = self.embedding(y)
+                embeddings      = torch.cat([theta,delta,alpha,beta,gamma],1)
                 classes         = F.log_softmax(self.classifier(embeddings),dim=1)  
-                
+
                 return(embeddings, classes)
             
         return(Net().float())
     
-               
-    def DML_train(Model,X_train,y_train,X_val,y_val,n_epochs,batch_size,learning_rate,patience,n_classes):
+    def DML_train(Model,X_train,y_train,X_val,y_val,n_epochs,batch_size,learning_rate,weight_decay,patience,n_classes):
         
         Saved_model = Model
         Wait = 0
@@ -170,50 +138,66 @@ class Functions:
         List_val_acc          = []
         List_val_f_one        = []
                
-        optimizer             = Adam(Model.parameters(), lr=learning_rate)
-        distance              = distances.CosineSimilarity()
-        reducer               = reducers.ThresholdReducer(low = 0)
-        triplet_loss_func     = losses.TripletMarginLoss(margin = 0.8, distance = distance, reducer = reducer)
+        optimizer             = Adam(Model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        contrastive_loss_func = losses.ContrastiveLoss(pos_margin=0, neg_margin=1)
         weights               = classweight(class_weight="balanced",classes=np.arange(n_classes),y=y_train.numpy())        
         class_weights         = torch.FloatTensor(weights).cuda()
         CE_loss_func          = CrossEntropyLoss(weight=class_weights)
-        class_weights         = torch.FloatTensor(weights)
-        val_CE_loss_func      = CrossEntropyLoss(weight=class_weights)
+                
         trainset              = [[X_train[i],y_train[i]] for i in range(X_train.size()[0])]
         trainloader           = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
-               
+        valset                = [[X_val[i],y_val[i]] for i in range(X_val.size()[0])]
+        valloader             = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True)
+        
+        Model = Model.cuda()
+        
         for epoch in range(0,n_epochs):
-            Model = Model.cuda()
+            
+            t0 = time.time()
+            
             for batch_idx, (data, target) in enumerate(trainloader):
 
                 Model.train()
 
                 optimizer.zero_grad()
-                embeddings, output   = Model(data.float().cuda())         
-                emb_train_loss       = triplet_loss_func(embeddings, target)
+                embeddings, output   = Model(data.float().cuda()) 
+                emb_train_loss       = contrastive_loss_func(embeddings, target)
                 cls_train_loss       = CE_loss_func(output, target.cuda())
-                train_loss           = (emb_train_loss*0.25+cls_train_loss*0.75)
+                train_loss           = emb_train_loss*0.1+cls_train_loss*1
                 train_loss.backward()       
                 optimizer.step()
                 
+            lossall = []
+            accall  = []
+            f1all   = []
+                
             with torch.no_grad():
                 
-                Model                      = Model.cpu()
+                for batch_idx, (data, target) in enumerate(valloader):
 
-                val_embeddings, val_output = Model(X_val.float())[0],Model(X_val.float())[1]     
-                emb_val_loss               = triplet_loss_func(val_embeddings, y_val)
-                cls_val_loss               = val_CE_loss_func(val_output, y_val)
-                val_loss                   = (emb_val_loss*0.25+cls_val_loss*0.75)
-                
-                val_predictions            = np.argmax(list(val_output.numpy()), axis=1)
-                val_acc                    = accuracy_score(y_val, val_predictions)*100
-                val_f_one                  = f1_score(y_val, val_predictions, average='macro')
+                    embeddings, output         = Model(data.float().cuda())      
+                    emb_val_loss               = contrastive_loss_func(embeddings, target)
+                    cls_val_loss               = CE_loss_func(output, target.cuda())
+                    val_loss                   = emb_val_loss*0.1+cls_val_loss*1
+
+                    val_predictions            = np.argmax(list(output.cpu().numpy()), axis=1)
+                    val_acc                    = accuracy_score(target.cpu(), val_predictions)*100
+                    val_f_one                  = f1_score(target.cpu(), val_predictions, average='macro')
+                    
+                    lossall.append(val_loss)
+                    accall.append(val_acc)
+                    f1all.append(val_f_one)  
+                    
+                val_loss  = torch.mean(torch.tensor(lossall))
+                val_acc   = np.average(accall)
+                val_f_one = np.average(f1all)
 
             print("EPOCH : ",epoch)
             print("train loss = ","{:.5f}".format(train_loss.item()), "\t emb_train loss = ","{:.5f}".format(emb_train_loss.item()), "\t cls_train loss = ","{:.5f}".format(cls_train_loss.item()))
-            print("val loss = ","{:.5f}".format(val_loss.item()), "\t emb_val loss = ","{:.5f}".format(emb_val_loss.item()), "\t cls_train loss = ","{:.5f}".format(cls_val_loss.item()))
+            print("val loss = ","{:.5f}".format(val_loss.item()))
             print("acc = ",val_acc)
             print("f1 = ",val_f_one)
+            print("Elapsed Time = ", int(time.time()-t0), "s")
             print("===================================================================================\n")
 
             if epoch>9:
@@ -239,7 +223,7 @@ class Functions:
                 
         return(Saved_model,history)
     
-    def regular_train(Model,X_train,y_train,X_val,y_val,n_epochs,batch_size,learning_rate,patience,n_classes):
+    def regular_train(Model,X_train,y_train,X_val,y_val,n_epochs,batch_size,learning_rate,weight_decay,patience,n_classes):
         
         Saved_model = Model
         Wait = 0
@@ -249,17 +233,24 @@ class Functions:
         List_val_acc          = []
         List_val_f_one        = []
                
-        optimizer             = Adam(Model.parameters(), lr=learning_rate)
+        optimizer             = Adam(Model.parameters(), lr=learning_rate, weight_decay=weight_decay)
         weights               = classweight(class_weight="balanced",classes=np.arange(n_classes),y=y_train.numpy())
         class_weights         = torch.FloatTensor(weights).cuda()
         CE_loss_func          = CrossEntropyLoss(weight=class_weights)
-        class_weights         = torch.FloatTensor(weights)
-        val_CE_loss_func      = CrossEntropyLoss(weight=class_weights)
+        val_weights           = classweight(class_weight="balanced",classes=np.arange(n_classes),y=y_val.numpy())        
+        val_class_weights     = torch.FloatTensor(val_weights).cuda()
+        val_CE_loss_func      = CrossEntropyLoss(weight=val_class_weights)
         trainset              = [[X_train[i],y_train[i]] for i in range(X_train.size()[0])]
         trainloader           = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
-               
+        valset                = [[X_val[i],y_val[i]] for i in range(X_val.size()[0])]
+        valloader             = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True)
+        
+        Model.cuda()
+        
         for epoch in range(0,n_epochs):
-            Model.cuda()
+            
+            t0 = time.time()
+            
             for batch_idx, (data, target) in enumerate(trainloader):
 
                 Model.train()
@@ -271,22 +262,35 @@ class Functions:
                 train_loss.backward()       
                 optimizer.step()
                 
+            lossall = []
+            accall  = []
+            f1all   = []
+                
             with torch.no_grad():
                 
-                Model.cpu()
+                for batch_idx, (data, target) in enumerate(valloader):
 
-                val_output                 = Model(X_val.float())[1]     
-                val_loss                   = val_CE_loss_func(val_output, y_val)
+                    output                     = Model(data.float().cuda())[1]      
+                    val_loss                   = val_CE_loss_func(output, target.cuda())
 
-                val_predictions            = np.argmax(list(val_output.numpy()), axis=1)
-                val_acc                    = accuracy_score(y_val, val_predictions)*100
-                val_f_one                  = f1_score(y_val, val_predictions, average='macro')
+                    val_predictions            = np.argmax(list(output.cpu().numpy()), axis=1)
+                    val_acc                    = accuracy_score(target.cpu(), val_predictions)*100
+                    val_f_one                  = f1_score(target.cpu(), val_predictions, average='macro')
+                    
+                    lossall.append(val_loss)
+                    accall.append(val_acc)
+                    f1all.append(val_f_one)  
+
+                val_loss  = torch.mean(torch.tensor(lossall))
+                val_acc   = np.average(accall)
+                val_f_one = np.average(f1all)
 
             print("EPOCH : ",epoch)
             print("train loss = ","{:.5f}".format(train_loss.item()))
             print("val loss = ","{:.5f}".format(val_loss.item()))
             print("acc = ",val_acc)
             print("f1 = ",val_f_one)
+            print("Elapsed Time = ", int(time.time()-t0), "s")
             print("===================================================================================\n")
 
             if epoch>9:
@@ -325,13 +329,15 @@ class Functions:
         
         return(test_embeddings,test_acc,test_f_one)
     
-    def clustering(embeddings,label,n_classes):
-        embeddings_embedded = TSNE(n_components=n_classes).fit_transform(embeddings)
-        for i in range(n_classes):
+    def clustering(embeddings,label,classes):
+        embeddings_embedded = TSNE(n_components=len(classes)).fit_transform(embeddings)
+        for i in range(len(classes)):
             x = [embeddings_embedded[:,0][j] for j in range(label.shape[0]) if label[j]==i]
             y = [embeddings_embedded[:,1][j] for j in range(label.shape[0]) if label[j]==i]
             
-            plt.scatter(x,y)   
+            plt.scatter(x,y,label=classes[i])
+            
+        plt.legend()
             
         return(embeddings_embedded)
     
