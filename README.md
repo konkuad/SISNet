@@ -1,7 +1,7 @@
 # MuS-Net (Multi-scale seizure prediction)
 Seizure Classifier with multi-level convolution and deep metric learning
 
-Literally every code is in SISNet.py
+Literally every code is in MuS-Net.py
 You would need to have pytorch metrics learning installed (see original code here https://github.com/KevinMusgrave/pytorch-metric-learning).
 
 class Functions
