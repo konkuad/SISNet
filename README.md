@@ -9,7 +9,7 @@ The model consists of 3 modules as follow.
 1. Multi-scale Convolution Module
 2. Spectral-temporal Feature Extraction Module
 3. Multilevel Preceptron Classifier Module
-![image](./EEGWaveNet/model.png)
+![image](./model.png)
 
 ##### Multi-scale Convolution Module
 The module mimics wavelet by treating depthwise convolution as transformation coefficients.
