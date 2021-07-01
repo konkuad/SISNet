@@ -59,7 +59,7 @@ class Functions:
                     nn.LeakyReLU(0.01))
 
                 self.chpool3    = Sequential(
-                    nn.Conv2d(21, 32, kernel_size=(1,4),groups=1),
+                    nn.Conv2d(n_chans, 32, kernel_size=(1,4),groups=1),
                     torch.nn.BatchNorm2d(32),
                     nn.LeakyReLU(0.01),
                     nn.Conv2d(32, 32, kernel_size=(1,4),groups=1),
@@ -117,7 +117,7 @@ class Functions:
             
         return(Net().float())
     
-    def train(Model,X_train,y_train,X_val,y_val,n_epochs,batch_size,learning_rate,weight_decay,patience,n_classes):
+    def train(Model,X_train,y_train,X_val,y_val,n_epochs=69420,batch_size=64,learning_rate=1e-3,weight_decay=0,patience=10,n_classes):
         
         Saved_model = Model
         Wait = 0
@@ -196,15 +196,13 @@ class Functions:
             List_train_loss.append(train_loss.item())
             List_val_loss.append(val_loss.item())       
             List_val_acc.append(val_acc)
-            List_val_f_one.append(val_f_one)
 
             if Wait >= patience:
                 break
             
             history = {"train loss"          : List_train_loss,
                       "val loss"             : List_val_loss,
-                      "accuracies"           : List_val_acc,
-                      "f1 scores"            : List_val_f_one}
+                      "accuracies"           : List_val_acc}
 
                 
         return(Saved_model,history,T)
